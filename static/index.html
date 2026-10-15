@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Finder · Streamlit</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Streamlit / Cinema Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dark-theme">
+
+    <!-- Top Streamlit Accent Indicator Strip -->
+    <div class="streamlit-top-bar"></div>
+
+    <!-- Browser Chrome Header Bar (as in Screenshot) -->
+    <header class="browser-mockup-header">
+        <div class="browser-tab">
+            <span class="tab-indicator">
+                <span class="dot red"></span>
+                <span class="dot yellow"></span>
+                <span class="dot green"></span>
+            </span>
+            <span class="tab-title">
+                <i class="fa-solid fa-film tab-icon"></i> Movie Finder · Streamlit
+            </span>
+            <span class="tab-close">&times;</span>
+        </div>
+        <div class="browser-address-bar">
+            <i class="fa-solid fa-lock ssl-lock"></i>
+            <span class="url-text">movie-rex.streamlit.app</span>
+            <i class="fa-solid fa-rotate-right refresh-icon" id="btnRefresh" title="Reset app"></i>
+        </div>
+        <div class="browser-actions">
+            <button class="nav-btn" id="btnShare" title="Share Project"><i class="fa-solid fa-arrow-up-from-bracket"></i> <span>Share</span></button>
+            <button class="nav-btn" id="btnStar" title="Star Project"><i class="fa-regular fa-star"></i></button>
+            <button class="nav-btn" id="btnGithub" title="View Project on GitHub"><i class="fa-brands fa-github"></i></button>
+            <div class="user-avatar" title="Mini Project Student">H</div>
+        </div>
+    </header>
+
+    <!-- Main Streamlit Canvas Container -->
+    <main class="streamlit-container">
+
+        <!-- Header Hero Section -->
+        <section class="app-header">
+            <h1 class="main-title">
+                <span class="camera-emoji">🎥</span> Movie Finder
+            </h1>
+            <p class="subtitle">
+                Choose some of your favourite movies and we'll find similar ones that you'll like. Enjoy! <span class="popcorn">🍿</span>
+            </p>
+        </section>
+
+        <!-- NLP Multi-select Input Card -->
+        <section class="control-panel">
+            <div class="input-label-row">
+                <label class="input-label" for="movieSearchInput">
+                    <span class="check-icon">✅</span> Choose 1+ movies you like
+                </label>
+                <div class="tooltip-wrapper">
+                    <span class="help-circle" id="helpTooltip">?</span>
+                    <div class="tooltip-box">
+                        <strong>NLP Content-Based Filtering:</strong><br>
+                        Select one or more movies. Our Python Natural Language Processing engine aggregates plot overviews, genres, keywords, and cast into TF-IDF vector space and calculates Cosine Similarities to find the closest thematic matches.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-Select Tag Input Box -->
+            <div class="multi-select-container" id="multiSelectBox">
+                <div class="selected-chips" id="selectedChipsList">
+                    <!-- Preloaded default chips like Image 1: Band of Brothers & The Godfather -->
+                </div>
+                <div class="search-input-wrapper">
+                    <input type="text" id="movieSearchInput" placeholder="Type to search movie title..." autocomplete="off">
+                </div>
+                <div class="select-controls">
+                    <button class="clear-all-btn" id="btnClearAll" title="Clear all selections">
+                        <i class="fa-regular fa-circle-xmark"></i>
+                    </button>
+                    <span class="dropdown-arrow" id="btnToggleDropdown">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </span>
+                </div>
+
+                <!-- Autocomplete Dropdown List -->
+                <div class="autocomplete-dropdown" id="autocompleteDropdown">
+                    <div class="dropdown-header">
+                        <span>Available Movies (<span id="totalAvailableCount">0</span>)</span>
+                        <span class="sub-hint">Click to add to your taste profile</span>
+                    </div>
+                    <div class="dropdown-items" id="dropdownItemsList">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsible Filtering Options (Accordion) -->
+            <div class="accordion-section" id="filteringSection">
+                <div class="accordion-header" id="accordionToggle">
+                    <span class="accordion-title">Filtering Options</span>
+                    <i class="fa-solid fa-chevron-down accordion-arrow" id="accordionArrow"></i>
+                </div>
+                <div class="accordion-body" id="accordionContent">
+                    <div class="filters-grid">
+                        <!-- Genre Filter -->
+                        <div class="filter-col">
+                            <label class="filter-sublabel"><i class="fa-solid fa-masks-theater"></i> Filter by Genres:</label>
+                            <div class="genre-pill-group" id="genrePillGroup">
+                                <span class="genre-pill active" data-genre="all">All Genres</span>
+                                <!-- Genre pills dynamically generated -->
+                            </div>
+                        </div>
+
+                        <!-- Minimum Rating Slider -->
+                        <div class="filter-col">
+                            <div class="slider-header">
+                                <label class="filter-sublabel"><i class="fa-solid fa-star-half-stroke"></i> Minimum Average Rating:</label>
+                                <span class="slider-value" id="ratingSliderVal">75%</span>
+                            </div>
+                            <input type="range" class="range-slider" id="ratingSlider" min="50" max="95" value="75">
+                            <div class="slider-ticks">
+                                <span>50%</span>
+                                <span>75%</span>
+                                <span>95%</span>
+                            </div>
+                        </div>
+
+                        <!-- Release Year Range -->
+                        <div class="filter-col">
+                            <label class="filter-sublabel"><i class="fa-regular fa-calendar"></i> Release Year Range:</label>
+                            <div class="year-inputs">
+                                <input type="number" id="yearMin" value="1970" min="1930" max="2026">
+                                <span class="year-dash">—</span>
+                                <input type="number" id="yearMax" value="2026" min="1930" max="2026">
+                            </div>
+                        </div>
+
+                        <!-- Max Recommendations -->
+                        <div class="filter-col">
+                            <label class="filter-sublabel"><i class="fa-solid fa-list-ol"></i> Number of Recommendations:</label>
+                            <select class="custom-select" id="topNSelect">
+                                <option value="5">Top 5 Movies</option>
+                                <option value="10" selected>Top 10 Movies (Default)</option>
+                                <option value="15">Top 15 Movies</option>
+                                <option value="20">Top 20 Movies</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Primary Action Button -->
+            <div class="action-btn-row">
+                <button class="btn-find-movies" id="btnFindMovies">
+                    Find similar Movies <span class="clapper-emoji">🎬</span>
+                </button>
+                <div class="quick-presets">
+                    <span class="preset-label">Quick Taste Presets:</span>
+                    <button class="preset-btn" data-preset="mafia">Mafia & Crime</button>
+                    <button class="preset-btn" data-preset="scifi">Sci-Fi & Space</button>
+                    <button class="preset-btn" data-preset="animation">Claymation & Animation</button>
+                    <button class="preset-btn" data-preset="netflix">Netflix Hits</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- View Mode Navigation Strip -->
+        <section class="results-header-bar">
+            <div class="results-stats">
+                <span class="stats-counter" id="resultsCountNotice">Showing Top Recommendations</span>
+                <span class="nlp-indicator-badge">
+                    <i class="fa-solid fa-brain"></i> TF-IDF & Cosine Similarity
+                </span>
+            </div>
+            <div class="view-mode-tabs">
+                <button class="view-tab active" data-view="table" id="tabTableView">
+                    <i class="fa-solid fa-table-list"></i> Table View
+                </button>
+                <button class="view-tab" data-view="netflix" id="tabNetflixView">
+                    <i class="fa-solid fa-clapperboard"></i> Cinema Poster Grid
+                </button>
+                <button class="view-tab" data-view="math" id="tabMathView">
+                    <i class="fa-solid fa-square-root-variable"></i> NLP Inspector
+                </button>
+            </div>
+        </section>
+
+        <!-- Results Section 1: Exact Streamlit Table (Image 1) -->
+        <section class="results-view" id="tableViewContainer">
+            <div class="table-card-wrapper">
+                <table class="streamlit-table" id="recommendationsTable">
+                    <thead>
+                        <tr>
+                            <th class="col-index">#</th>
+                            <th class="col-title">Title</th>
+                            <th class="col-rating-you">Rating (for you)</th>
+                            <th class="col-rating-avg">Average Rating (all users)</th>
+                            <th class="col-genres">Genres</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Populated dynamically via JS -->
+                    </tbody>
+                </table>
+                <div class="table-loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p>Computing NLP TF-IDF Cosine Similarity Vectors...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section 2: Netflix Style Cinema Poster Grid (Image 2) -->
+        <section class="results-view hidden" id="netflixViewContainer">
+            <div class="netflix-banner-header">
+                <h2>Recommended For Your Cinephile Profile</h2>
+                <p>Click any poster to view full synopsis, cast, and matching NLP semantic terms.</p>
+            </div>
+            <div class="cinema-cards-grid" id="cinemaCardsGrid">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+
+        <!-- Results Section 3: NLP Mathematical & Vector Space Inspector -->
+        <section class="results-view hidden" id="mathViewContainer">
+            <div class="math-card">
+                <h3><i class="fa-solid fa-brain"></i> How Natural Language Processing Calculates Recommendations</h3>
+                <div class="math-formula-box">
+                    <div class="formula-title">1. Term Frequency - Inverse Document Frequency (TF-IDF):</div>
+                    <div class="formula-code">
+                        TF(t, d) = (Count of term t in doc d) / (Total terms in doc d)<br>
+                        IDF(t) = ln[(1 + N) / (1 + DF(t))] + 1<br>
+                        TF-IDF(t, d) = TF(t, d) × IDF(t)
+                    </div>
+                    <div class="formula-title">2. Cosine Similarity in Vector Space:</div>
+                    <div class="formula-code">
+                        Cosine Similarity = cos(θ) = (A · B) / (||A|| × ||B||) = Σ(A_i × B_i)
+                    </div>
+                </div>
+
+                <div class="nlp-details-content" id="nlpDetailsContent">
+                    <p>Select any recommended movie in the table to inspect its shared NLP tokens with your selections.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- App Footer (Matching Screenshot < Manage app) -->
+        <footer class="app-footer">
+            <div class="footer-left">
+                <span class="project-tag">College Mini Project: Movie Recommendation System using NLP & Python</span>
+            </div>
+            <div class="footer-right">
+                <button class="manage-app-btn" id="btnManageApp">
+                    &lt; Manage app
+                </button>
+            </div>
+        </footer>
+
+    </main>
+
+    <!-- Movie Details Modal (Cinematic Backdrop, Poster, Overview & NLP Explain) -->
+    <div class="modal-backdrop" id="movieModal">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="btnModalClose">&times;</button>
+            <div class="modal-hero" id="modalHero">
+                <div class="modal-overlay"></div>
+                <div class="modal-header-content">
+                    <span class="modal-rating-badge" id="modalRatingBadge">93% Match</span>
+                    <h2 id="modalMovieTitle">Movie Title (Year)</h2>
+                    <div class="modal-meta-row">
+                        <span id="modalYear">2020</span> • 
+                        <span id="modalGenres">Drama|Crime</span> • 
+                        <span class="user-score"><i class="fa-solid fa-star"></i> <span id="modalAvgScore">88%</span> Avg Rating</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-poster-col">
+                    <img src="" alt="Poster" id="modalPosterImg" class="modal-poster-img">
+                </div>
+                <div class="modal-info-col">
+                    <div class="modal-section">
+                        <h4><i class="fa-solid fa-align-left"></i> Plot Overview</h4>
+                        <p id="modalOverviewText">Overview goes here...</p>
+                    </div>
+
+                    <div class="modal-section">
+                        <h4><i class="fa-solid fa-user-tie"></i> Cast & Crew</h4>
+                        <p><strong>Director:</strong> <span id="modalDirector">Director</span></p>
+                        <p><strong>Starring:</strong> <span id="modalCast">Cast members</span></p>
+                    </div>
+
+                    <div class="modal-section nlp-explanation-box">
+                        <h4><i class="fa-solid fa-microchip"></i> Why was this recommended? (NLP Feature Match)</h4>
+                        <p class="nlp-subtext">Key matching terms extracted from plot synopsis and thematic tags:</p>
+                        <div class="nlp-tag-cloud" id="modalNlpTags">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-row">
+                        <button class="btn-add-profile" id="btnAddModalMovie">
+                            <i class="fa-solid fa-plus"></i> Add to My Favorites
+                        </button>
+                        <button class="btn-secondary" id="btnCloseModalSecondary">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage App Modal / Project Details -->
+    <div class="modal-backdrop" id="manageAppModal">
+        <div class="modal-card small-modal">
+            <button class="modal-close-btn" id="btnManageClose">&times;</button>
+            <div class="small-modal-body">
+                <div class="manage-logo"><i class="fa-solid fa-film"></i></div>
+                <h3>Movie Finder App Management</h3>
+                <p class="manage-desc">
+                    <strong>Project:</strong> Movie Recommendation System using NLP and Python<br>
+                    <strong>Technology Stack:</strong> Python, NumPy, TF-IDF Vectorization, Cosine Similarity, FastAPI, REST API, HTML5/CSS3/ES6.<br>
+                    <strong>Developer:</strong> Harshal (College Mini Project)
+                </p>
+                <div class="system-stats-card">
+                    <div class="stat-item">
+                        <span class="stat-number" id="statsTotalMovies">65</span>
+                        <span class="stat-label">Indexed Movies</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="statsVocabSize">1,240+</span>
+                        <span class="stat-label">NLP Vocabulary</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">100%</span>
+                        <span class="stat-label">Local Python Engine</span>
+                    </div>
+                </div>
+                <button class="btn-primary-block" id="btnManageDone">Close Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
